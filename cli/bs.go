@@ -14,20 +14,10 @@ func exitOnErr(err error) {
 	}
 }
 
-const BuildSetConfigFileName = "bsconfig.yml"
-
 func main() {
 	r, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
 	exitOnErr(err)
-	idx, err := r.Storer.Index()
-	exitOnErr(err)
-	bsConfigEntry, err := idx.Entry(BuildSetConfigFileName)
-	exitOnErr(err)
-	bsConfigObject, err := r.BlobObject(bsConfigEntry.Hash)
-	exitOnErr(err)
-	bsConfigReader, err := bsConfigObject.Reader()
-	exitOnErr(err)
-	buildSetConfig, err := bs.ReadBuildSetConfig(bsConfigReader)
+	buildSetConfig, err := bs.ReadBuildSetConfigFromIndex(r)
 	exitOnErr(err)
 	for _, set := range buildSetConfig.BuildSets {
 		exitOnErr(bs.AddHashOutput(r, set))

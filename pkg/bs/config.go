@@ -1,6 +1,7 @@
 package bs
 
 import (
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -8,11 +9,11 @@ import (
 )
 
 type BuildSet struct {
-	Name       string   `yaml:"name"`
-	HashOutput string   `yaml:"hash-output"`
-	Remote     string   `yaml:"remote"`
+	Name       string   `yaml:"-"`
+	HashOutput string   `yaml:"hash-output,omitempty"`
+	Remote     string   `yaml:"remote,omitempty"`
 	Include    []string `yaml:"include"`
-	Exclude    []string `yaml:"exclude"`
+	Exclude    []string `yaml:"exclude,omitempty"`
 }
 
 func (set *BuildSet) GetExcludeMatcher() gitignore.Matcher {
@@ -24,18 +25,49 @@ func (set *BuildSet) GetExcludeMatcher() gitignore.Matcher {
 }
 
 type BuildSetConfig struct {
-	BuildSets map[string]*BuildSet
+	BuildSets map[string]*BuildSet `yaml:"build-sets"`
 }
 
 func ReadBuildSetConfig(in io.Reader) (*BuildSetConfig, error) {
-	bsConfig := &BuildSetConfig{BuildSets: map[string]*BuildSet{}}
+	var bsc BuildSetConfig
 	bytes, err := ioutil.ReadAll(in)
 	if err != nil {
 		return nil, err
 	}
-	err = yaml.Unmarshal(bytes, &bsConfig.BuildSets)
-	for name, set := range bsConfig.BuildSets {
+	err = yaml.Unmarshal(bytes, &bsc)
+	for name, set := range bsc.BuildSets {
 		set.Name = name
 	}
-	return bsConfig, err
+	return &bsc, err
+}
+
+func (bsc *BuildSetConfig) Write(w io.Writer) error {
+	bscBytes, err := yaml.Marshal(bsc)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(bscBytes)
+	return err
+}
+
+const BuildSetConfigFileName = "bsconfig.yml"
+
+func ReadBuildSetConfigFromIndex(r *git.Repository) (*BuildSetConfig, error) {
+	idx, err := r.Storer.Index()
+	if err != nil {
+		return nil, err
+	}
+	bsConfigEntry, err := idx.Entry(BuildSetConfigFileName)
+	if err != nil {
+		return nil, err
+	}
+	bsConfigObject, err := r.BlobObject(bsConfigEntry.Hash)
+	if err != nil {
+		return nil, err
+	}
+	bsConfigReader, err := bsConfigObject.Reader()
+	if err != nil {
+		return nil, err
+	}
+	return ReadBuildSetConfig(bsConfigReader)
 }
