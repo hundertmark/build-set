@@ -43,9 +43,10 @@ func generateTestRepo(t *testing.T, files map[string]string) (*git.Repository, p
 
 func stdTestRepoContent() map[string]string {
 	return map[string]string{
-		"a/hello": "hello a",
-		"b/hello": "hello b",
-		"c/hello": "hello c",
+		"a/hello":      "hello a",
+		"b/hello":      "hello b",
+		"c/hello":      "hello c",
+		"bsconfig.yml": stdTestBuildSetConfigYaml(),
 	}
 }
 
@@ -55,7 +56,7 @@ func generateStdTestRepo(t *testing.T) (*git.Repository, plumbing.Hash, plumbing
 
 func TestTestRepoGeneration(t *testing.T) {
 	r, _, treeHash := generateStdTestRepo(t)
-	expectedTreeHash := plumbing.NewHash("3891d8802de47445f72489934e010cbc18e395fd")
+	expectedTreeHash := plumbing.NewHash("3930299f5715b6b4f7bef15bc39dc3454079c0f4")
 	require.NotNil(t, r)
 	assert.Equal(t, expectedTreeHash, treeHash)
 }
