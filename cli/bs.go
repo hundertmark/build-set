@@ -19,11 +19,15 @@ const BuildSetConfigFileName = "bsconfig.yml"
 func main() {
 	r, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
 	exitOnErr(err)
-	w, err := r.Worktree()
+	idx, err := r.Storer.Index()
 	exitOnErr(err)
-	bsConfigFile, err := w.Filesystem.Open(BuildSetConfigFileName)
+	bsConfigEntry, err := idx.Entry(BuildSetConfigFileName)
 	exitOnErr(err)
-	buildSetConfig, err := bs.ReadBuildSetConfig(bsConfigFile)
+	bsConfigObject, err := r.BlobObject(bsConfigEntry.Hash)
+	exitOnErr(err)
+	bsConfigReader, err := bsConfigObject.Reader()
+	exitOnErr(err)
+	buildSetConfig, err := bs.ReadBuildSetConfig(bsConfigReader)
 	exitOnErr(err)
 	for _, set := range buildSetConfig.BuildSets {
 		exitOnErr(bs.AddHashOutput(r, set))
